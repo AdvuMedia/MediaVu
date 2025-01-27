@@ -1,128 +1,126 @@
 import streamlit as st
 import pandas as pd
+import altair as alt
 
-# Debugging message: Loading data
+# App Configuration
+st.set_page_config(
+    page_title="MediaVu Dashboard",
+    page_icon="📊",
+    layout="wide",  # Utilize the full screen width
+)
+
+# App Title
+st.title("📊 MediaVu Dashboard")
+st.caption("Modern Media Mix Modeling and Visualization Tool")
+
+# Load Dataset
 st.write("Loading data...")
-
-# Load the dataset
 try:
-    # Ensure the CSV file path is relative to the repository
     data = pd.read_csv("data/media_data.csv")
-    st.write("Data loaded successfully!")
+    st.success("Data loaded successfully!")
 except FileNotFoundError as e:
     st.error(f"File not found: {e}")
-    st.stop()  # Stop execution if the file is missing
+    st.stop()
 
-# Display the raw data
-st.subheader("Raw Data")
-st.dataframe(data)
+# Sidebar
+st.sidebar.header("Dashboard Controls")
+st.sidebar.write("Adjust parameters and filters here.")
 
-# Data preprocessing: Standardize the data
-st.write("Processing data...")
-try:
-    # Extract marketing channel data and target variable
-    channels = data[["CTR%", "Conversions", "FormFills"]]  # Numeric columns
-    sales = data["Sales"]  # Dependent variable
+# Budget Slider
+total_budget = st.sidebar.slider(
+    "Total Budget ($)", min_value=1000, max_value=50000, value=10000, step=1000
+)
 
-    # Standardize the data
-    channels_std = (channels - channels.mean()) / channels.std()
-    sales_std = (sales - sales.mean()) / sales.std()
+# Channel Filter
+channel_filter = st.sidebar.multiselect(
+    "Select Channels", options=data["channel"].unique(), default=data["channel"].unique()
+)
 
-    # Display standardized data
-    st.subheader("Standardized Channel Data")
-    st.dataframe(channels_std)
+# Filtered Data
+filtered_data = data[data["channel"].isin(channel_filter)]
 
-    st.subheader("Standardized Sales Data")
-    st.write(sales_std.head())
-except KeyError as e:
-    st.error(f"Column not found: {e}")
-    st.stop()  # Stop execution if data processing fails
+# Validate Columns
+required_columns = ["CTR%", "Conversions", "FormFills", "Sales"]
+missing_columns = [col for col in required_columns if col not in filtered_data.columns]
+if missing_columns:
+    st.error(f"Missing columns: {missing_columns}")
+    st.stop()
 
-# Budget Recommendation Section
-st.subheader("Budget Allocation Recommendation")
+# Standardize Data
+channels = filtered_data[["CTR%", "Conversions", "FormFills"]]
+sales = filtered_data["Sales"]
 
-# Placeholder: Add logic for recommending budget allocation
-def recommend_budget(channels_data, sales_data):
-    """Simple placeholder function for budget allocation."""
-    # Example logic: Equal allocation
-    total_budget = 10000  # Example total budget
-    allocation = {col: total_budget / len(channels_data.columns) for col in channels_data.columns}
+channels_std = (channels - channels.mean()) / channels.std()
+sales_std = (sales - sales.mean()) / sales.std()
+
+# Layout: Create Columns for Data and Visualization
+st.subheader("💾 Raw and Standardized Data")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.write("### Raw Data")
+    st.dataframe(filtered_data, use_container_width=True)
+
+with col2:
+    st.write("### Standardized Channel Data")
+    st.dataframe(channels_std, use_container_width=True)
+
+# Visualizations
+st.subheader("📈 Visualizations")
+
+# Channel Performance Chart
+st.write("### Channel Performance")
+performance_chart = (
+    alt.Chart(filtered_data)
+    .transform_fold(
+        ["CTR%", "Conversions", "FormFills"],
+        as_=["Metric", "Value"]
+    )
+    .mark_bar()
+    .encode(
+        x="Metric:N",
+        y="Value:Q",
+        color="Metric:N",
+        column="channel:N",
+    )
+)
+st.altair_chart(performance_chart, use_container_width=True)
+
+# Budget Recommendation
+st.subheader("💰 Budget Allocation Recommendation")
+
+# Budget Allocation Logic
+def recommend_budget(channels_data, total_budget):
+    allocation = {
+        col: round(total_budget / len(channels_data.columns), 2)
+        for col in channels_data.columns
+    }
     return allocation
 
 try:
-    budget_allocation = recommend_budget(channels, sales)
-    st.write("Recommended Budget Allocation:")
-    st.json(budget_allocation)
+    budget_allocation = recommend_budget(channels_std, total_budget)
+    st.write("### Budget Allocation Distribution")
+    allocation_df = pd.DataFrame(
+        {"Channel": budget_allocation.keys(), "Allocation": budget_allocation.values()}
+    )
+    st.dataframe(allocation_df)
+
+    # Pie Chart for Budget Allocation
+    pie_chart = (
+        alt.Chart(allocation_df)
+        .mark_arc()
+        .encode(
+            theta=alt.Theta(field="Allocation", type="quantitative"),
+            color=alt.Color(field="Channel", type="nominal"),
+            tooltip=["Channel", "Allocation"],
+        )
+    )
+    st.altair_chart(pie_chart, use_container_width=True)
 except Exception as e:
-    st.error(f"Error generating budget recommendation: {e}")
+    st.error(f"Error during budget allocation: {e}")
 
 # Footer
 st.write("---")
-st.caption("MediaVu Dashboard - Powered by Streamlit")
-
-import streamlit as st
-import pandas as pd
-
-st.write("Initializing MediaVu...")  # Debug message at the start
-
-try:
-    st.write("Attempting to load data...")
-    data = pd.read_csv("data/media_data.csv")
-    st.write("Data loaded successfully!")
-except FileNotFoundError as e:
-    st.error(f"File not found: {e}")
-    st.stop()
-
-# Display raw data
-st.subheader("Raw Data")
-st.dataframe(data)
-
-# Check if required columns exist
-st.write("Validating column names...")
-required_columns = ["CTR%", "Conversions", "FormFills", "Sales"]
-missing_columns = [col for col in required_columns if col not in data.columns]
-if missing_columns:
-    st.error(f"Missing required columns: {missing_columns}")
-    st.stop()
-
-# Standardize data
-st.write("Standardizing data...")
-try:
-    channels = data[["CTR%", "Conversions", "FormFills"]]
-    sales = data["Sales"]
-
-    channels_std = (channels - channels.mean()) / channels.std()
-    sales_std = (sales - sales.mean()) / sales.std()
-
-    st.write("Data standardized successfully!")
-except Exception as e:
-    st.error(f"Error during data standardization: {e}")
-    st.stop()
-
-# Display standardized data
-st.subheader("Standardized Channel Data")
-st.dataframe(channels_std)
-
-st.subheader("Standardized Sales Data")
-st.dataframe(sales_std)
-
-# Placeholder for budget recommendation
-st.subheader("Budget Allocation Recommendation")
-st.write("Calculating budget allocation...")
-try:
-    def recommend_budget(channels_data, sales_data):
-        total_budget = 10000
-        allocation = {col: total_budget / len(channels_data.columns) for col in channels_data.columns}
-        return allocation
-
-    budget_allocation = recommend_budget(channels_std, sales_std)
-    st.json(budget_allocation)
-except Exception as e:
-    st.error(f"Error during budget allocation: {e}")
-    st.stop()
-
-st.write("---")
-st.caption("MediaVu Dashboard - Powered by Streamlit")
-
-
+st.caption("MediaVu Dashboard - Designed with Streamlit")
 
