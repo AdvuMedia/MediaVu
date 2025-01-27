@@ -6,7 +6,7 @@ import altair as alt
 st.set_page_config(
     page_title="MediaVu Dashboard",
     page_icon="📊",
-    layout="wide",  # Utilize the full screen width
+    layout="wide",  # Utilize full screen width
 )
 
 # App Title
@@ -54,9 +54,10 @@ except Exception as e:
     st.error(f"Error processing CTR% column: {e}")
     st.stop()
 
-# Layout: Raw and Processed Data Section
+# Layout: Raw Data and Budget Allocation
 st.subheader("💾 Data Overview")
-col1, col2 = st.columns(2)
+
+col1, col2 = st.columns([2, 1])
 
 with col1:
     st.write("### Raw Data")
@@ -75,11 +76,14 @@ with col2:
 
     budget_allocation = recommend_budget(filtered_data[["Conversions", "FormFills"]], total_budget)
 
-    # Format as dollar amounts
-    formatted_allocation = {k: f"${v:,.2f}" for k, v in budget_allocation.items()}
-    st.json(formatted_allocation)
+    # Format budget as a table
+    allocation_df = pd.DataFrame({
+        "Metric": budget_allocation.keys(),
+        "Allocation ($)": [f"${v:,.2f}" for v in budget_allocation.values()]
+    })
+    st.table(allocation_df)
 
-# Visualizations Section
+# Visualizations
 st.subheader("📈 Visualizations")
 
 # Channel Performance Chart
@@ -96,26 +100,20 @@ performance_chart = (
         y="Value:Q",
         color="Metric:N",
         column="channel:N",
+        tooltip=["channel:N", "Metric:N", "Value:Q"]
     )
 )
 st.altair_chart(performance_chart, use_container_width=True)
 
 # Budget Allocation Pie Chart
 st.write("### Budget Allocation Distribution")
-allocation_df = pd.DataFrame(
-    {"Channel": budget_allocation.keys(), "Allocation": budget_allocation.values()}
-)
-allocation_df["Formatted Allocation"] = allocation_df["Allocation"].apply(
-    lambda x: f"${x:,.2f}"
-)
-
 pie_chart = (
     alt.Chart(allocation_df)
     .mark_arc()
     .encode(
-        theta=alt.Theta(field="Allocation", type="quantitative"),
-        color=alt.Color(field="Channel", type="nominal"),
-        tooltip=["Channel", "Formatted Allocation"],
+        theta=alt.Theta(field="Allocation ($)", type="quantitative"),
+        color=alt.Color(field="Metric", type="nominal"),
+        tooltip=["Metric", "Allocation ($)"],
     )
 )
 st.altair_chart(pie_chart, use_container_width=True)
