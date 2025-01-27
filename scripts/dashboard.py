@@ -46,12 +46,13 @@ if missing_columns:
     st.error(f"Missing columns: {missing_columns}")
     st.stop()
 
-# Format CTR% as percentage
-filtered_data["CTR%"] = filtered_data["CTR%"].apply(lambda x: f"{x:.1f}%")
-
-# Standardize Data
-channels = filtered_data[["CTR%", "Conversions", "FormFills"]]
-sales = filtered_data["Sales"]
+# Ensure CTR% is numeric before formatting
+try:
+    filtered_data["CTR%"] = pd.to_numeric(filtered_data["CTR%"], errors="coerce")
+    filtered_data["CTR%"] = filtered_data["CTR%"].apply(lambda x: f"{x:.1f}%" if pd.notnull(x) else "N/A")
+except Exception as e:
+    st.error(f"Error processing CTR% column: {e}")
+    st.stop()
 
 # Layout: Raw and Processed Data Section
 st.subheader("💾 Data Overview")
@@ -72,7 +73,7 @@ with col2:
         }
         return allocation
 
-    budget_allocation = recommend_budget(channels, total_budget)
+    budget_allocation = recommend_budget(filtered_data[["Conversions", "FormFills"]], total_budget)
 
     # Format as dollar amounts
     formatted_allocation = {k: f"${v:,.2f}" for k, v in budget_allocation.items()}
@@ -122,5 +123,3 @@ st.altair_chart(pie_chart, use_container_width=True)
 # Footer
 st.write("---")
 st.caption("MediaVu Dashboard - Designed with Streamlit")
-formatted_allocation = {k: f"${v:,.2f}" for k, v in budget_allocation.items()}
-filtered_data["CTR%"] = filtered_data["CTR%"].apply(lambda x: f"{x:.1f}%")
