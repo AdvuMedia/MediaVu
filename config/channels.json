@@ -1,0 +1,34 @@
+{
+    "channels": [
+        {
+            "name": "Facebook",
+            "metrics": ["CTR%", "Conversions", "Sales", "FormFills"],
+            "benchmarks": {
+                "CTR%": 1.5,
+                "Conversions": 200,
+                "Sales": 1000,
+                "FormFills": 100
+            }
+        },
+        {
+            "name": "Google Ads",
+            "metrics": ["CTR%", "Conversions", "Sales", "FormFills"],
+            "benchmarks": {
+                "CTR%": 2.0,
+                "Conversions": 300,
+                "Sales": 1500,
+                "FormFills": 200
+            }
+        },
+        {
+            "name": "TV",
+            "metrics": ["CTR%", "Conversions", "Sales", "FormFills"],
+            "benchmarks": {
+                "CTR%": 0.5,
+                "Conversions": 100,
+                "Sales": 500,
+                "FormFills": 50
+            }
+        }
+    ]
+}
