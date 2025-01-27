@@ -46,16 +46,15 @@ if missing_columns:
     st.error(f"Missing columns: {missing_columns}")
     st.stop()
 
+# Format CTR% as percentage
+filtered_data["CTR%"] = filtered_data["CTR%"].apply(lambda x: f"{x:.1f}%")
+
 # Standardize Data
 channels = filtered_data[["CTR%", "Conversions", "FormFills"]]
 sales = filtered_data["Sales"]
 
-channels_std = (channels - channels.mean()) / channels.std()
-sales_std = (sales - sales.mean()) / sales.std()
-
-# Layout: Create Columns for Data and Visualization
-st.subheader("💾 Raw and Standardized Data")
-
+# Layout: Raw and Processed Data Section
+st.subheader("💾 Data Overview")
 col1, col2 = st.columns(2)
 
 with col1:
@@ -63,14 +62,27 @@ with col1:
     st.dataframe(filtered_data, use_container_width=True)
 
 with col2:
-    st.write("### Standardized Channel Data")
-    st.dataframe(channels_std, use_container_width=True)
+    st.write("### Budget Allocation Recommendation")
 
-# Visualizations
+    # Budget Allocation Logic
+    def recommend_budget(channels_data, total_budget):
+        allocation = {
+            col: round(total_budget / len(channels_data.columns), 2)
+            for col in channels_data.columns
+        }
+        return allocation
+
+    budget_allocation = recommend_budget(channels, total_budget)
+
+    # Format as dollar amounts
+    formatted_allocation = {k: f"${v:,.2f}" for k, v in budget_allocation.items()}
+    st.json(formatted_allocation)
+
+# Visualizations Section
 st.subheader("📈 Visualizations")
 
 # Channel Performance Chart
-st.write("### Channel Performance")
+st.write("### Channel Performance by Metric")
 performance_chart = (
     alt.Chart(filtered_data)
     .transform_fold(
@@ -87,40 +99,28 @@ performance_chart = (
 )
 st.altair_chart(performance_chart, use_container_width=True)
 
-# Budget Recommendation
-st.subheader("💰 Budget Allocation Recommendation")
+# Budget Allocation Pie Chart
+st.write("### Budget Allocation Distribution")
+allocation_df = pd.DataFrame(
+    {"Channel": budget_allocation.keys(), "Allocation": budget_allocation.values()}
+)
+allocation_df["Formatted Allocation"] = allocation_df["Allocation"].apply(
+    lambda x: f"${x:,.2f}"
+)
 
-# Budget Allocation Logic
-def recommend_budget(channels_data, total_budget):
-    allocation = {
-        col: round(total_budget / len(channels_data.columns), 2)
-        for col in channels_data.columns
-    }
-    return allocation
-
-try:
-    budget_allocation = recommend_budget(channels_std, total_budget)
-    st.write("### Budget Allocation Distribution")
-    allocation_df = pd.DataFrame(
-        {"Channel": budget_allocation.keys(), "Allocation": budget_allocation.values()}
+pie_chart = (
+    alt.Chart(allocation_df)
+    .mark_arc()
+    .encode(
+        theta=alt.Theta(field="Allocation", type="quantitative"),
+        color=alt.Color(field="Channel", type="nominal"),
+        tooltip=["Channel", "Formatted Allocation"],
     )
-    st.dataframe(allocation_df)
-
-    # Pie Chart for Budget Allocation
-    pie_chart = (
-        alt.Chart(allocation_df)
-        .mark_arc()
-        .encode(
-            theta=alt.Theta(field="Allocation", type="quantitative"),
-            color=alt.Color(field="Channel", type="nominal"),
-            tooltip=["Channel", "Allocation"],
-        )
-    )
-    st.altair_chart(pie_chart, use_container_width=True)
-except Exception as e:
-    st.error(f"Error during budget allocation: {e}")
+)
+st.altair_chart(pie_chart, use_container_width=True)
 
 # Footer
 st.write("---")
 st.caption("MediaVu Dashboard - Designed with Streamlit")
-
+formatted_allocation = {k: f"${v:,.2f}" for k, v in budget_allocation.items()}
+filtered_data["CTR%"] = filtered_data["CTR%"].apply(lambda x: f"{x:.1f}%")
