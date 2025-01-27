@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Load the dataset
-data = pd.read_csv("data/media_data.csv")  # Relative path
+data = pd.read_csv("data/media_data.csv")  # Relative path to the CSV file
 
 # Extract marketing channel data and target variable
 channels = data[["CTR%", "Conversions", "FormFills"]]  # Use numeric columns
