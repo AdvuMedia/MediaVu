@@ -92,4 +92,28 @@ predicted_sales = sales  # Replace with your model's predictions
 mse = mean_squared_error(sales, predicted_sales)
 st.write(f"Model Mean Squared Error: {mse}")
 
+from scipy.optimize import minimize
+
+# Define an objective function
+def objective_function(budgets):
+    # Simulate sales based on budgets
+    simulated_sales = budgets[0] * contributions["CTR%"] + \
+                      budgets[1] * contributions["Conversions"] + \
+                      budgets[2] * contributions["FormFills"]
+    return -simulated_sales  # Minimize the negative to maximize sales
+
+# Initial budgets
+initial_budgets = [1000, 1000, 1000]
+
+# Optimize budgets
+result = minimize(objective_function, initial_budgets, method='SLSQP')
+optimized_budgets = result.x
+
+# Display optimized budgets
+st.write("Optimized Budget Allocation:")
+st.json({"CTR% Budget": optimized_budgets[0],
+         "Conversions Budget": optimized_budgets[1],
+         "FormFills Budget": optimized_budgets[2]})
+# Load the dataset
+data = pd.read_csv("data/media_data.csv")  # Use relative path
 
