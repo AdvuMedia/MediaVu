@@ -60,6 +60,69 @@ except Exception as e:
 st.write("---")
 st.caption("MediaVu Dashboard - Powered by Streamlit")
 
+import streamlit as st
+import pandas as pd
+
+st.write("Initializing MediaVu...")  # Debug message at the start
+
+try:
+    st.write("Attempting to load data...")
+    data = pd.read_csv("data/media_data.csv")
+    st.write("Data loaded successfully!")
+except FileNotFoundError as e:
+    st.error(f"File not found: {e}")
+    st.stop()
+
+# Display raw data
+st.subheader("Raw Data")
+st.dataframe(data)
+
+# Check if required columns exist
+st.write("Validating column names...")
+required_columns = ["CTR%", "Conversions", "FormFills", "Sales"]
+missing_columns = [col for col in required_columns if col not in data.columns]
+if missing_columns:
+    st.error(f"Missing required columns: {missing_columns}")
+    st.stop()
+
+# Standardize data
+st.write("Standardizing data...")
+try:
+    channels = data[["CTR%", "Conversions", "FormFills"]]
+    sales = data["Sales"]
+
+    channels_std = (channels - channels.mean()) / channels.std()
+    sales_std = (sales - sales.mean()) / sales.std()
+
+    st.write("Data standardized successfully!")
+except Exception as e:
+    st.error(f"Error during data standardization: {e}")
+    st.stop()
+
+# Display standardized data
+st.subheader("Standardized Channel Data")
+st.dataframe(channels_std)
+
+st.subheader("Standardized Sales Data")
+st.dataframe(sales_std)
+
+# Placeholder for budget recommendation
+st.subheader("Budget Allocation Recommendation")
+st.write("Calculating budget allocation...")
+try:
+    def recommend_budget(channels_data, sales_data):
+        total_budget = 10000
+        allocation = {col: total_budget / len(channels_data.columns) for col in channels_data.columns}
+        return allocation
+
+    budget_allocation = recommend_budget(channels_std, sales_std)
+    st.json(budget_allocation)
+except Exception as e:
+    st.error(f"Error during budget allocation: {e}")
+    st.stop()
+
+st.write("---")
+st.caption("MediaVu Dashboard - Powered by Streamlit")
 
 
 
